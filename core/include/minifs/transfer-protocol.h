@@ -34,7 +34,7 @@ ssize_t minifs_core_protocol__parse_request(
 
 
 ssize_t minifs_core_protocol__file_create( struct minifs_core_transfer_protocol_options * tp_options, const char * name, uint8_t *buffer);
-ssize_t minifs_core_protocol__file_get( struct minifs_core_transfer_protocol_options * tp_options, const char * name, int* data_length, uint8_t *buffer);
+ssize_t minifs_core_protocol__file_get( struct minifs_core_transfer_protocol_options * tp_options, const char * name, uint8_t *buffer);
 ssize_t minifs_core_protocol__file_write( struct minifs_core_transfer_protocol_options * tp_options, char* name, void* contents, int content_length, uint8_t *buffer);
 ssize_t minifs_core_protocol__file_delete( struct minifs_core_transfer_protocol_options * tp_options, char * name, uint8_t *buffer);
 ssize_t minifs_core_protocol__file_copy( struct minifs_core_transfer_protocol_options * tp_options, char * source, char * destination, uint8_t *buffer);
@@ -42,7 +42,7 @@ ssize_t minifs_core_protocol__file_copy( struct minifs_core_transfer_protocol_op
 
 ssize_t minifs_core_protocol__dir_create( struct minifs_core_transfer_protocol_options * tp_options, char * name, uint8_t *buffer);
 ssize_t minifs_core_protocol__dir_delete( struct minifs_core_transfer_protocol_options * tp_options, char * name, uint8_t *buffer);
-ssize_t minifs_core_protocol__dir_get_contents( struct minifs_core_transfer_protocol_options * tp_options, char * name, uint8_t * size, uint8_t *buffer);
+ssize_t minifs_core_protocol__dir_get_contents( struct minifs_core_transfer_protocol_options * tp_options, char * name, uint8_t *buffer);
 
 
 ssize_t minifs_core_protocol__create_response(

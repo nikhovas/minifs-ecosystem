@@ -12,7 +12,7 @@ ssize_t filename_to_path_buffer(
     if (input_buffer_size < 1) {
         return -2;
     }
-    *buffer_size = input_buffer[1];
+    *buffer_size = input_buffer[0];
     if (input_buffer_size < 1 + *buffer_size) {
         return -2;
     }
@@ -35,7 +35,7 @@ ssize_t contents_to_data_buffer(
     }
 
     const uint16_t* addr = (const uint16_t *) input_buffer;
-    *buffer_size = (size_t) *addr;
+    *buffer_size = *addr;
     if (input_buffer_size < 2 + *buffer_size) {
         return -2;
     }

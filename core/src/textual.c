@@ -4,44 +4,44 @@
 #include "minifs/high_level.h"
 
 
-void minifs_core_textual__file_create(const char * name, int * error) {
-    high_level__file_create(name, error);
+void minifs_core_textual__file_create(struct minifs_core__filesystem_context * ctx, const char * name, int * error) {
+    high_level__file_create(ctx, name, error);
 }
 
 
-void* minifs_core_textual__file_get(const char * name, int* data_length, int* error_code) {
-    return high_level__file_get(name, data_length, error_code);
+void* minifs_core_textual__file_get(struct minifs_core__filesystem_context * ctx, const char * name, int* data_length, int* error_code) {
+    return high_level__file_get(ctx, name, data_length, error_code);
 }
 
 
-void minifs_core_textual__file_write(char* name, void* contents, int content_length, int * error) {
-    high_level__file_write(name, contents, content_length, error);
+void minifs_core_textual__file_write(struct minifs_core__filesystem_context * ctx, char* name, void* contents, int content_length, int * error) {
+    high_level__file_write(ctx, name, contents, content_length, error);
 }
 
 
-void minifs_core_textual__file_delete(char * name, int * error) {
-    high_level__file_delete(name, error);
+void minifs_core_textual__file_delete(struct minifs_core__filesystem_context * ctx, char * name, int * error) {
+    high_level__file_delete(ctx, name, error);
 }
 
 
-void minifs_core_textual__file_copy(char * source, char * destination, int * error) {
-    high_level__file_copy(source, destination, error);
+void minifs_core_textual__file_copy(struct minifs_core__filesystem_context * ctx, char * source, char * destination, int * error) {
+    high_level__file_copy(ctx, source, destination, error);
 }
 
 
-void minifs_core_textual__dir_create(char * name, int * error) {
-    high_level__dir_create(name, error);
+void minifs_core_textual__dir_create(struct minifs_core__filesystem_context * ctx, char * name, int * error) {
+    high_level__dir_create(ctx, name, error);
 }
 
 
-void minifs_core_textual__dir_delete(char * name, int * error) {
-    high_level__dir_delete(name, error);
+void minifs_core_textual__dir_delete(struct minifs_core__filesystem_context * ctx, char * name, int * error) {
+    high_level__dir_delete(ctx, name, error);
 }
 
 
-char* minifs_core_textual__dir_get_contents(char * name, int* data_length, int* error) {
+char* minifs_core_textual__dir_get_contents(struct minifs_core__filesystem_context * ctx, char * name, int* data_length, int* error) {
     uint8_t size;
-    directory_item_t * dir_items = high_level__dir_get_contents(name, &size, error);
+    directory_item_t * dir_items = high_level__dir_get_contents(ctx, name, &size, error);
     char * result = malloc(128);
     int result_size = 0;
     if (*error == NO_ERROR) {

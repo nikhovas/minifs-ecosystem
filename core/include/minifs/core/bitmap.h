@@ -10,7 +10,8 @@
     #include <stdio.h>
     #include <stdint.h>
 #endif
+#include <minifs/filesystem_context.h>
 
 
-size_t alloc_bitmap_node(FILE* file, size_t offset, size_t length, int * error);
-void free_bitmap_node(FILE* file, size_t offset, size_t number, int *error);
+size_t alloc_bitmap_node(struct minifs_core__filesystem_context * ctx, size_t offset, size_t length, int * error);
+void free_bitmap_node(struct minifs_core__filesystem_context * ctx, size_t offset, size_t number, int *error);

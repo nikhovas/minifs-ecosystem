@@ -6,13 +6,13 @@
 // #include <stdlib.h>
 
 
-size_t alloc_bitmap_node(FILE* file, size_t offset, size_t length, int * error) {
+size_t alloc_bitmap_node(struct minifs_core__filesystem_context * ctx, size_t offset, size_t length, int * error) {
     *error = NO_ERROR;
 
     length = length / 8;
     // uint8_t* data = malloc(length);
     uint8_t data[length];
-    get_part_file(data, file, offset, length, error);
+    ctx->sdi->get_part(ctx, data, offset, length, error);
     if (*error != NO_ERROR) {
         return 0;
     }
@@ -23,7 +23,7 @@ size_t alloc_bitmap_node(FILE* file, size_t offset, size_t length, int * error) 
             uint8_t bit_value = get_bit(val, j);
             if (bit_value == 0) {
                 val = set_bit(val, j);
-                set_part_file(&val, file, offset + i * 8, 1, error);
+                ctx->sdi->set_part(ctx, &val, offset + i * 8, 1, error);
                 if (*error != NO_ERROR) {
                     return 0;
                 }
@@ -37,18 +37,18 @@ size_t alloc_bitmap_node(FILE* file, size_t offset, size_t length, int * error) 
 }
 
 
-void free_bitmap_node(FILE* file, size_t offset, size_t number, int *error) {
+void free_bitmap_node(struct minifs_core__filesystem_context * ctx, size_t offset, size_t number, int *error) {
     *error = NO_ERROR;
 
     uint8_t val;
-    get_part_file(&val, file, offset + number / 8, 1, error);
+    ctx->sdi->get_part(ctx, &val, offset + number / 8, 1, error);
     if (*error != NO_ERROR) {
         return;
     }
 
     val = set_bit(val, number % 8);
 
-    set_part_file(&val, file, offset + number / 8, 1, error);
+    ctx->sdi->set_part(ctx, &val, offset + number / 8, 1, error);
     if (*error != NO_ERROR) {
         return;
     }

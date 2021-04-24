@@ -10,20 +10,20 @@
 #endif
 
 
-block_data_t get_block_data_by_id(uint8_t block_id, int *error) {
+block_data_t get_block_data_by_id(struct minifs_core__filesystem_context * ctx, uint8_t block_id, int *error) {
     block_data_t block_data;
-    get_part_file((uint8_t *) &block_data, fileptr,  BLOCK_DATA_OFFSET+ block_id * BLOCK_SIZE, BLOCK_SIZE, error);
+    ctx->sdi->get_part(ctx, (uint8_t *) &block_data, MINIFS__BLOCK_DATA_OFFSET + block_id * MINIFS__BLOCK_SIZE, MINIFS__BLOCK_SIZE, error);
     return block_data;
 }
 
 
-void write_bock_data_by_id(uint8_t block_id, block_data_t *block_data, int *error) {
-    set_part_file((uint8_t *) block_data, fileptr, BLOCK_DATA_OFFSET+ block_id * BLOCK_SIZE, BLOCK_SIZE, error);
+void write_bock_data_by_id(struct minifs_core__filesystem_context * ctx, uint8_t block_id, block_data_t *block_data, int *error) {
+    ctx->sdi->set_part(ctx, (uint8_t *) block_data, MINIFS__BLOCK_DATA_OFFSET + block_id * MINIFS__BLOCK_SIZE, MINIFS__BLOCK_SIZE, error);
 }
 
 
-uint8_t alloc_block(int *error) {
-    uint8_t id = alloc_bitmap_node(fileptr, BLOCK_BITMAP_DATA_OFFSET, BLOCK_COUNT, error);
+uint8_t alloc_block(struct minifs_core__filesystem_context * ctx, int *error) {
+    uint8_t id = alloc_bitmap_node(ctx, MINIFS__BLOCK_BITMAP_DATA_OFFSET, MINIFS__BLOCK_COUNT, error);
     if (*error == NO_FREE_NODES_AVAILABLE) {
         *error = BLOCKS_LIMIT;
         return 0;
@@ -32,6 +32,6 @@ uint8_t alloc_block(int *error) {
 }
 
 
-void free_block(uint8_t block_id, int *error) {
-    free_bitmap_node(fileptr, BLOCK_BITMAP_DATA_OFFSET, block_id, error);
+void free_block(struct minifs_core__filesystem_context * ctx, uint8_t block_id, int *error) {
+    free_bitmap_node(ctx, MINIFS__BLOCK_BITMAP_DATA_OFFSET, block_id, error);
 }

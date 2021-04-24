@@ -212,8 +212,6 @@ void kernel_execute_cmd(int args_count, char** args) {
                                                       second_buffer, &second_buffer_size, data_buffer, &data_buffer_size,
                                                       &operation_type);
 
-
-
     switch (error) {
         case NO_ERROR:
             break;

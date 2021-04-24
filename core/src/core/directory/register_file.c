@@ -4,7 +4,7 @@
 #include "minifs/errors.h"
 
 
-void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* filename, uint8_t file_node_id, int *error) {
+void dir_data__register_file_with_name(struct minifs_core__filesystem_context * ctx, i_node_data_t *dir_i_node_data, char* filename, uint8_t file_node_id, int *error) {
     *error = NO_ERROR;
 
     if (strlen(filename) > 7) {
@@ -13,13 +13,13 @@ void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* fil
     }
 
     int local_error;
-    dir_data_get_file_i_node(dir_i_node_data, filename, file_node_id, &local_error);
+    dir_data_get_file_i_node(ctx, dir_i_node_data, filename, file_node_id, &local_error);
     if (local_error == NO_ERROR) {
         *error = FILE_ALREADY_EXISTS;
         return;
     }
 
-    i_node_block_info_t i_node_block_info = get_i_node_block_info(dir_i_node_data);
+    i_node_block_info_t i_node_block_info = get_i_node_block_info(ctx, dir_i_node_data);
 
     uint8_t next_item;
     uint8_t current_block_num;
@@ -28,7 +28,7 @@ void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* fil
         next_item = i_node_block_info.last_block_size / 8;
         current_block_num = i_node_block_info.number_of_blocks - 1;
     } else {
-        dir_i_node_data->block_ids[i_node_block_info.number_of_blocks] = alloc_block(error);
+        dir_i_node_data->block_ids[i_node_block_info.number_of_blocks] = alloc_block(ctx, error);
         if (*error != NO_ERROR) {
             dir_i_node_data->block_ids[i_node_block_info.number_of_blocks] = 0;
             return;
@@ -38,7 +38,7 @@ void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* fil
         next_item = 0;
     }
 
-    directory_data_t dir_data = dir_data_get_by_id(dir_i_node_data->block_ids[current_block_num], error);
+    directory_data_t dir_data = dir_data_get_by_id(ctx, dir_i_node_data->block_ids[current_block_num], error);
     if (*error != NO_ERROR) {
         return;
     }
@@ -47,7 +47,7 @@ void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* fil
     dir_item.i_node_id = file_node_id;
     strcpy(dir_item.name, filename);
     dir_data.dir_items[next_item] = dir_item;
-    write_bock_data_by_id(dir_i_node_data->block_ids[current_block_num], (block_data_t *) &dir_data, error);
+    write_bock_data_by_id(ctx, dir_i_node_data->block_ids[current_block_num], (block_data_t *) &dir_data, error);
     if (*error != NO_ERROR) {
         return;
     }
@@ -55,15 +55,15 @@ void dir_data__register_file_with_name(i_node_data_t *dir_i_node_data, char* fil
     dir_i_node_data->file_size += 8;
 }
 
-void dir_data_id__register_file_with_name(uint8_t dir_i_node_id, char* filename, uint8_t file_node_id, int *error) {
-    i_node_data_t dir_i_node_data = i_node_id__get_data(dir_i_node_id, error);
+void dir_data_id__register_file_with_name(struct minifs_core__filesystem_context * ctx, uint8_t dir_i_node_id, char* filename, uint8_t file_node_id, int *error) {
+    i_node_data_t dir_i_node_data = i_node_id__get_data(ctx, dir_i_node_id, error);
     if (*error != NO_ERROR) {
         return;
     }
 
-    dir_data__register_file_with_name(&dir_i_node_data, filename, file_node_id, error);
+    dir_data__register_file_with_name(ctx, &dir_i_node_data, filename, file_node_id, error);
     if (*error == NO_ERROR) {
-        i_node__save(dir_i_node_id, &dir_i_node_data, error);
+        i_node__save(ctx, dir_i_node_id, &dir_i_node_data, error);
         if (*error != NO_ERROR) {
             return;
         }
@@ -71,7 +71,7 @@ void dir_data_id__register_file_with_name(uint8_t dir_i_node_id, char* filename,
 }
 
 
-void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, uint8_t file_node_id, int *error) {
+void dir_data__unregister_file(struct minifs_core__filesystem_context * ctx, i_node_data_t *dir_i_node_data, char* filename, uint8_t file_node_id, int *error) {
     *error = NO_ERROR;
 
     uint8_t file_folder_sector_num = 0;
@@ -81,7 +81,7 @@ void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, u
 //    i_node_data_t i_node_data = i_node_id__get_data(dir_i_node_id);
 
     for (uint8_t i = 0; i < 6 && found == 0 && i * 4 * 8 < dir_i_node_data->file_size; ++i) {
-        directory_data_t dir_data = dir_data_get_by_id(dir_i_node_data->block_ids[i], error);
+        directory_data_t dir_data = dir_data_get_by_id(ctx, dir_i_node_data->block_ids[i], error);
         if (*error != NO_ERROR) {
             return;
         }
@@ -101,10 +101,10 @@ void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, u
         return;
     }
 
-    i_node_block_info_t i_node_block_info = get_i_node_block_info(dir_i_node_data);
+    i_node_block_info_t i_node_block_info = get_i_node_block_info(ctx, dir_i_node_data);
 
     uint8_t dir_data_id = dir_i_node_data->block_ids[file_folder_sector_num];
-    directory_data_t dir_data = dir_data_get_by_id(dir_data_id, error);
+    directory_data_t dir_data = dir_data_get_by_id(ctx, dir_data_id, error);
     if (*error != NO_ERROR) {
         return;
     }
@@ -118,14 +118,14 @@ void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, u
             dir_data.dir_items[i_node_block_info.last_block_size / 8] = dir_item;
         } else {
             dir_i_node_data->block_ids[i_node_block_info.number_of_blocks - 1] = 0;
-            free_block(dir_data_id, error);
+            free_block(ctx, dir_data_id, error);
             if (*error != NO_ERROR) {
                 return;
             }
         }
     } else {
         uint8_t latest_dir_data_id = dir_i_node_data->block_ids[i_node_block_info.number_of_blocks - 1];
-        directory_data_t latest_data = dir_data_get_by_id(latest_dir_data_id, error);
+        directory_data_t latest_data = dir_data_get_by_id(ctx, latest_dir_data_id, error);
         if (*error != NO_ERROR) {
             return;
         }
@@ -136,13 +136,13 @@ void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, u
             dir_item.i_node_id = 0;
             dir_item.name[0] = 0;
             latest_data.dir_items[i_node_block_info.last_block_size / 8] = dir_item;
-            dir_data_save_by_id(latest_dir_data_id, &latest_data, error);
+            dir_data_save_by_id(ctx, latest_dir_data_id, &latest_data, error);
             if (*error != NO_ERROR) {
                 return;
             }
         } else {
             dir_i_node_data->block_ids[i_node_block_info.number_of_blocks - 1] = 0;
-            free_block(latest_dir_data_id, error);
+            free_block(ctx, latest_dir_data_id, error);
             if (*error != NO_ERROR) {
                 return;
             }
@@ -152,15 +152,15 @@ void dir_data__unregister_file(i_node_data_t *dir_i_node_data, char* filename, u
     dir_i_node_data->file_size -= 8;
 }
 
-void dir_data_id__unregister_file(uint8_t dir_i_node_id, char* filename, uint8_t file_node_id, int * error) {
-    i_node_data_t dir_i_node_data = i_node_id__get_data(dir_i_node_id, error);
+void dir_data_id__unregister_file(struct minifs_core__filesystem_context * ctx, uint8_t dir_i_node_id, char* filename, uint8_t file_node_id, int * error) {
+    i_node_data_t dir_i_node_data = i_node_id__get_data(ctx, dir_i_node_id, error);
     if (*error != NO_ERROR) {
         return;
     }
 
-    dir_data__unregister_file(&dir_i_node_data, filename, file_node_id, error);
+    dir_data__unregister_file(ctx, &dir_i_node_data, filename, file_node_id, error);
     if (*error == NO_ERROR) {
-        i_node__save(dir_i_node_id, &dir_i_node_data, error);
+        i_node__save(ctx, dir_i_node_id, &dir_i_node_data, error);
         if (*error != NO_ERROR) {
             return;
         }

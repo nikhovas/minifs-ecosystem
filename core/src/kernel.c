@@ -247,7 +247,7 @@ static int scull_init_module(void) {
     return 0;
 }
 
-MODULE_AUTHOR("Name Surname");
+MODULE_AUTHOR("Nikolay Vasilev");
 MODULE_LICENSE("GPL");
 
 module_init(scull_init_module);

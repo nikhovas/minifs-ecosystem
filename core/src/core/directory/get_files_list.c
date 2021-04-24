@@ -2,7 +2,7 @@
 #include <minifs/std-wrapper/memory.h>
 
 
-void dir_data__get_files_list(i_node_data_t *dir_i_node_data, directory_item_t* dir_items, int * error) {
+void dir_data__get_files_list(struct minifs_core__filesystem_context * ctx, i_node_data_t *dir_i_node_data, directory_item_t* dir_items, int * error) {
     *error = NO_ERROR;
 
     if (dir_i_node_data->is_folder == 0) {
@@ -11,7 +11,7 @@ void dir_data__get_files_list(i_node_data_t *dir_i_node_data, directory_item_t* 
     }
 
     for (uint8_t i = 0; i < 6 && i * 4 * 8 < dir_i_node_data->file_size; ++i) {
-        directory_data_t dir_data = dir_data_get_by_id(dir_i_node_data->block_ids[i], error);
+        directory_data_t dir_data = dir_data_get_by_id(ctx, dir_i_node_data->block_ids[i], error);
         if (*error != NO_ERROR) {
             return;
         }
@@ -22,11 +22,11 @@ void dir_data__get_files_list(i_node_data_t *dir_i_node_data, directory_item_t* 
     }
 }
 
-void dir_data_id__get_files_list(uint8_t dir_i_node_id, directory_item_t* dir_items, int * error) {
-    i_node_data_t dir_i_node_data = i_node_id__get_data(dir_i_node_id, error);
+void dir_data_id__get_files_list(struct minifs_core__filesystem_context * ctx, uint8_t dir_i_node_id, directory_item_t* dir_items, int * error) {
+    i_node_data_t dir_i_node_data = i_node_id__get_data(ctx, dir_i_node_id, error);
     if (*error != NO_ERROR) {
         return;
     }
 
-    dir_data__get_files_list(&dir_i_node_data, dir_items, error);
+    dir_data__get_files_list(ctx, &dir_i_node_data, dir_items, error);
 }

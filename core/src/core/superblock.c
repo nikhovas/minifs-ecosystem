@@ -8,6 +8,6 @@
 #endif
 
 
-void superblock__save(superblock_data_t *superblock_data, int *error) {
-    set_part_file((uint8_t *) superblock_data, fileptr, SUPERBLOCK_DATA_OFFSET, SUPERBLOCK_SIZE, error);
+void superblock__save(struct minifs_core__filesystem_context * ctx, superblock_data_t *superblock_data, int *error) {
+    ctx->sdi->set_part(ctx, (uint8_t *) superblock_data, MINIFS__SUPERBLOCK_DATA_OFFSET, MINIFS__SUPERBLOCK_SIZE, error);
 }

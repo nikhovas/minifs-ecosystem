@@ -2,6 +2,7 @@
 
 
 #include <minifs/std-wrapper/stdint.h>
+#include <minifs/filesystem_context.h>
 
 
 typedef struct __attribute__((packed)) {
@@ -13,4 +14,4 @@ typedef struct __attribute__((packed)) {
 } superblock_data_t;
 
 
-void superblock__save(superblock_data_t *superblock_data, int *error);
+void superblock__save(struct minifs_core__filesystem_context * ctx, superblock_data_t *superblock_data, int *error);

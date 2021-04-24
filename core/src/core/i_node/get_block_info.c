@@ -1,7 +1,7 @@
 #include "minifs/core/i_node.h"
 
 
-i_node_block_info_t get_i_node_block_info(i_node_data_t *i_node_data) {
+i_node_block_info_t get_i_node_block_info(struct minifs_core__filesystem_context * ctx, i_node_data_t *i_node_data) {
     i_node_block_info_t i_node_block_info;
     i_node_block_info.number_of_blocks = i_node_data->file_size / 32;
     i_node_block_info.last_block_size = i_node_data->file_size % 32;

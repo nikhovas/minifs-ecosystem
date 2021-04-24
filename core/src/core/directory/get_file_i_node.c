@@ -3,7 +3,7 @@
 #include "minifs/errors.h"
 
 
-uint8_t dir_data_get_file_i_node(i_node_data_t *dir_i_node_data, char *filename, uint8_t file_i_node_id, int *error) {
+uint8_t dir_data_get_file_i_node(struct minifs_core__filesystem_context * ctx, i_node_data_t *dir_i_node_data, char *filename, uint8_t file_i_node_id, int *error) {
     *error = NO_ERROR;
 
     if (dir_i_node_data->is_folder == 0) {
@@ -12,7 +12,7 @@ uint8_t dir_data_get_file_i_node(i_node_data_t *dir_i_node_data, char *filename,
     }
 
     for (uint8_t i = 0; i < 6 && i * 4 * 8 < dir_i_node_data->file_size; ++i) {
-        directory_data_t dir_data = dir_data_get_by_id(dir_i_node_data->block_ids[i], error);
+        directory_data_t dir_data = dir_data_get_by_id(ctx, dir_i_node_data->block_ids[i], error);
         if (*error != NO_ERROR) {
             return 0;
         }
