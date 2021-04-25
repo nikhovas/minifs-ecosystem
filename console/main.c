@@ -339,22 +339,27 @@ void server_execute_cmd(int args_count, char** args) {
 
     int meta_buflen = 0;
     buffer_size = 0;
-    while ((meta_buflen = read(socket_fd, buffer + meta_buflen, sizeof(buffer) - meta_buflen)) == -1 && errno == EINTR);
-    if (meta_buflen > 0) {
-        buffer_size += meta_buflen;
-    } else {
-        printf("Error: server connection error\n");
-        exit(1);
-    }
-    
-    if (buffer_size == sizeof(buffer)) {
-        printf("Error: too big response\n");
-        exit(1);
+    while (1) {
+        while ((meta_buflen = read(socket_fd, buffer + meta_buflen, sizeof(buffer) - meta_buflen)) == -1 && errno == EINTR);
+        if (meta_buflen > 0) {
+            buffer_size += meta_buflen;
+        } else if (meta_buflen == 0) {
+            break;
+        } else {
+            printf("Error: server connection error\n");
+            exit(1);
+        }
+
+        if (buffer_size == sizeof(buffer)) {
+            printf("Error: too big response\n");
+            exit(1);
+        }
     }
 
     shutdown(socket_fd, SHUT_RDWR);
     close(socket_fd);
 
+    printf("Response size: %d\n", buffer_size);
     printf("%.*s\n", buffer_size, buffer);
 }
 
