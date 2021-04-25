@@ -114,40 +114,56 @@ ssize_t scull_write(struct file *flip, const char __user *buf, size_t count, lof
     int meta = 0;
     uint8_t meta2 = 0;
 
+    printk(KERN_INFO "minifs-kernel: Buffer one contents: %s\n", buffer_one);
+    printk(KERN_INFO "minifs-kernel: Buffer two contents: %s\n", buffer_two);
+
     switch (operation) {
         case MINIFS_CORE_PROTOCOL__FILE_CREATE_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: file create\n");
             middle_level__file_create(&ctx, buffer_one, (int *) &status);
             buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_GET_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: file get\n");
             middle_level__file_get(&ctx, buffer_one, (uint8_t *) (buffer + 3), &meta, (int *) &status);
             buffer_size = (uint16_t) meta;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_DELETE_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: file delete\n");
             middle_level__file_delete(&ctx, buffer_one, (int *) &status);
             buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_WRITE_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: file write\n");
             middle_level__file_write(&ctx, buffer_one, buffer, (int) buffer_size, (int *) &status);
             buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_COPY_REQUEST_NUM:
-            middle_level__file_copy(&ctx, buffer_one, buffer_two, buffer, (int *) &status);
+            printk(KERN_INFO "minifs-kernel: file copy\n");
+            status = MINIFS_ERROR__NOT_ENOUGH_REQUEST_SIZE;
             buffer_size = 0;
             break;
+            // middle_level__file_copy(&ctx, buffer_one, buffer_two, buffer, (int *) &status);
+            // buffer_size = 0;
+            // break;
         case MINIFS_CORE_PROTOCOL__DIR_CREATE_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: dir create\n");
             middle_level__dir_create(&ctx, buffer_one, (int *) &status);
             buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__DIR_GET_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: dir get\n");
             middle_level__dir_get_contents(&ctx, buffer_one, (directory_item_t *) (buffer + 3), &meta2, (int *) &status);
+            printk(KERN_INFO "minifs-kernel: dir elements: %d\n", meta2);
             buffer_size = meta2 * sizeof(directory_item_t);
             break;
         case MINIFS_CORE_PROTOCOL__DIR_DELETE_REQUEST_NUM:
+            printk(KERN_INFO "minifs-kernel: dir delete\n");
             middle_level__dir_delete(&ctx, buffer_one, (int *) &status);
             buffer_size = 0;
             break;
         default:
+            printk(KERN_INFO "minifs-kernel: error parsing\n");
             status = MINIFS_ERROR__NOT_ENOUGH_REQUEST_SIZE;
             buffer_size = 0;
             break;
