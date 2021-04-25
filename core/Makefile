@@ -1,3 +1,5 @@
+CONFIG_MODULE_SIG=n
+
 obj-m += minifs-kernel.o
 # minifs-kernel-objs := ./src/kernel.o ./src/utils.c ./src/errors.c ./src/disk.c ./src/core/bitmap.c ./src/core/block.c ./src/core/superblock.c
 minifs-kernel-objs := ./src/kernel.o \
@@ -25,10 +27,10 @@ minifs-kernel-objs := ./src/kernel.o \
 ./src/core/directory/get_number_of_files.o \
 ./src/core/directory/manage_file_in_subdirs.o \
 ./src/core/directory/register_file.o \
-./src/kernel_disk.o \
 ./src/transfer-protocol/create_request.o \
 ./src/transfer-protocol/parse_request.o \
-./src/transfer-protocol/response.o
+./src/transfer-protocol/response.o \
+./src/storage-drivers/in_memory_storage_driver.o
 
 
 ccflags-y += -I$(PWD)/include $(call cc-option,-ffreestanding) -D KERNEL_MODULE -std=gnu99

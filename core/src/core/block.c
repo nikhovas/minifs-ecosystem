@@ -1,6 +1,5 @@
 #include "minifs/core/block.h"
 #include "minifs/core/bitmap.h"
-#include "minifs/disk.h"
 #include "minifs/constants.h"
 #include "minifs/errors.h"
 

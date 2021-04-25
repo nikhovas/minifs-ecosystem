@@ -20,44 +20,47 @@
 #include <minifs/textual.h>
 #include <picohttpparser.h>
 #include "answers.h"
+#include <minifs/transfer-protocol.h>
 
 
 #define EPOLL_WAIT_TIME 1000
 
+#define OP_UNKNOWN 100
 
-#define OP_UNKNOWN 0
-#define OP_FILE_CREATE 1
-#define OP_FILE_GET 2
-#define OP_FILE_REMOVE 3
-#define OP_FILE_WRITE 4
-#define OP_FILE_COPY 5
-#define OP_DIR_CREATE 6
-#define OP_DIR_GET 7
-#define OP_DIR_REMOVE 8
+
+struct minifs_core_transfer_protocol_options minifs_po = {
+    (ssize_t (*)(uint8_t *, const uint8_t *, size_t)) &memcpy,
+    (ssize_t (*)(uint8_t *, const uint8_t *, size_t)) &memcpy,
+    (ssize_t (*)(uint8_t *, const uint8_t *, size_t)) &memcpy,
+    (ssize_t (*)(uint8_t *, const uint8_t *, size_t)) &memcpy
+};
+
+char kernel_device_path[128];
+int kernel_device_fd;
 
 
 int get_operation_type(size_t method_length, char * method_name) {
     if (method_length == 4) {
         if (memcmp(method_name, "FCRT", 4) == 0) {
-            return OP_FILE_CREATE;
+            return MINIFS_CORE_PROTOCOL__FILE_CREATE_REQUEST_NUM;
         } else if (memcmp(method_name, "FGET", 4) == 0) {
-            return OP_FILE_GET;
+            return MINIFS_CORE_PROTOCOL__FILE_GET_REQUEST_NUM;
         } else if (memcmp(method_name, "FWRT", 4) == 0) {
-            return OP_FILE_WRITE;
+            return MINIFS_CORE_PROTOCOL__FILE_WRITE_REQUEST_NUM;
         } else if (memcmp(method_name, "FCPY", 4) == 0) {
-            return OP_FILE_COPY;
+            return MINIFS_CORE_PROTOCOL__FILE_COPY_REQUEST_NUM;
         } else if (memcmp(method_name, "DCRT", 4) == 0) {
-            return OP_FILE_WRITE;
+            return MINIFS_CORE_PROTOCOL__DIR_CREATE_REQUEST_NUM;
         } else if (memcmp(method_name, "DGET", 4) == 0) {
-            return OP_DIR_GET;
+            return MINIFS_CORE_PROTOCOL__DIR_GET_REQUEST_NUM;
         } else {
             return OP_UNKNOWN;
         }
     } else if (method_length == 3) {
         if (memcmp(method_name, "FRM", 3) == 0) {
-            return OP_FILE_REMOVE;
+            return MINIFS_CORE_PROTOCOL__FILE_DELETE_REQUEST_NUM;
         } else if (memcmp(method_name, "DRM", 4) == 0) {
-            return OP_DIR_REMOVE;
+            return MINIFS_CORE_PROTOCOL__DIR_DELETE_REQUEST_NUM;
         } else {
             return OP_UNKNOWN;
         }
@@ -73,6 +76,8 @@ void serve_connection(int connection_fd) {
     struct phr_header headers[100];
     size_t buflen = 0, prevbuflen = 0, method_len, path_len, num_headers;
     ssize_t rret;
+
+    printf("Got connection\n");
 
     int request_parsed = 0;
     while (!request_parsed) {
@@ -107,39 +112,37 @@ void serve_connection(int connection_fd) {
         }
     }
 
-    void * data = buf + rret - 5;
+    void * data = buf + rret - content_length;
 
     int operation = get_operation_type(method_len, method);
-    int error = 0;
     char * data2;
     int data2_size;
     char * token;
     char * source;
     char * destination;
 
+    uint8_t buffer[1024];
+    uint16_t buffer_size = 0;
+    uint8_t directory_get = 0;
+
     switch (operation) {
-        case OP_FILE_CREATE:
-            high_level__file_create(path, &error);
+        case MINIFS_CORE_PROTOCOL__FILE_CREATE_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__file_create(&minifs_po, path, buffer);
             break;
         
-        case OP_FILE_GET:
-            data2 = high_level__file_get(path, &data2_size, &error);
-            if (error == NO_ERROR) {
-                printf("data of file: %s\n", data2);
-                answer_ok(connection_fd, data2_size, data2);
-                return;
-            }
+        case MINIFS_CORE_PROTOCOL__FILE_GET_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__file_get(&minifs_po, path, buffer);
             break;
 
-        case OP_FILE_REMOVE:
-            high_level__file_delete(path, &error);
+        case MINIFS_CORE_PROTOCOL__FILE_DELETE_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__file_delete(&minifs_po, path, buffer);
             break;
 
-        case OP_FILE_WRITE:
-            high_level__file_write(path, data, content_length, &error);
+        case MINIFS_CORE_PROTOCOL__FILE_WRITE_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__file_write(&minifs_po, path, data, content_length, buffer);
             break;
 
-        case OP_FILE_COPY:
+        case MINIFS_CORE_PROTOCOL__FILE_COPY_REQUEST_NUM:
             token = strtok(path, "@");
             source = token;
             token = strtok(NULL, " ");
@@ -148,23 +151,20 @@ void serve_connection(int connection_fd) {
                 answer_bad_request(connection_fd);
                 return;
             }
-            high_level__file_copy(source, destination, &error);
+            buffer_size = minifs_core_protocol__file_copy(&minifs_po, source, destination, buffer);
             break;
 
-        case OP_DIR_CREATE:
-            high_level__dir_create(path, &error);
+        case MINIFS_CORE_PROTOCOL__DIR_CREATE_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__dir_create(&minifs_po, path, buffer);
             break;
 
-        case OP_DIR_GET:
-            data2 = minifs_core_textual__dir_get_contents(path, &data2_size, &error);
-            if (error == NO_ERROR) {
-                answer_ok(connection_fd, data2_size, data2);
-                return;
-            }
+        case MINIFS_CORE_PROTOCOL__DIR_GET_REQUEST_NUM:
+            directory_get = 1;
+            buffer_size = minifs_core_protocol__dir_get_contents(&minifs_po, path, buffer);
             break;
 
-        case OP_DIR_REMOVE:
-            high_level__dir_delete(path, &error);
+        case MINIFS_CORE_PROTOCOL__DIR_DELETE_REQUEST_NUM:
+            buffer_size = minifs_core_protocol__dir_delete(&minifs_po, path, buffer);
             break;
 
         default:
@@ -172,12 +172,51 @@ void serve_connection(int connection_fd) {
             return;
     }
 
+    if (write(kernel_device_fd, buffer, buffer_size) <= 0) {
+        printf("ERROR: kernel module connection error\n");
+        answer_internal_server_error(connection_fd);
+        return;
+    }
+
+    uint8_t result_meta_data[3];
+    if (read(kernel_device_fd, result_meta_data, 3) <= 0) {
+        printf("ERROR: kernel module connection error\n");
+        answer_internal_server_error(connection_fd);
+        return;
+    }
+
+    uint16_t data_size;
+    uint8_t error = result_meta_data[0];
+    data_size = *((uint16_t *) (result_meta_data + 1));
+    if (data_size != 0) {
+        if (read(kernel_device_fd, buffer, data_size) <= 0) {
+            printf("ERROR: kernel module connection error\n");
+            answer_internal_server_error(connection_fd);
+            return;
+        }
+
+        if (directory_get) {
+            int result_size = data_size / sizeof(directory_item_t);
+            directory_item_t * buffer2 = (directory_item_t *) buffer;
+            char result[128];
+            int printed_size = 0;
+            for (uint8_t i = 0; i < result_size; ++i) {
+                printed_size += sprintf(result + printed_size, "%s\n", buffer2[i].name);
+            }
+            answer_ok(connection_fd, printed_size, result);
+        } else {
+            answer_ok(connection_fd, data_size, buffer);
+        }
+        
+        return;
+    }
+
     if (error == NO_ERROR) {
         answer_ok_only(connection_fd);
     } else if (error == NO_SUCH_FILE || error == NOT_A_VALID_PATH) {
         answer_not_found(connection_fd);
     } else {
-        answer_internal_server_error(connection_fd);
+        answer_internal_server_error_with_data(connection_fd, 1, &error);
     }
 }
 
@@ -237,6 +276,12 @@ int main(int argc, char* argv[]) {
     sigset_t full_mask;
     sigfillset(&full_mask);
     sigprocmask(SIG_BLOCK, &full_mask, NULL);
+
+    if (argc != 3) {
+        printf("Usage minifs-server <port-number> <symbol-device-path>\n");
+        return 1;
+    }
+
     int signal_pipe[2];
     if (pipe(signal_pipe) == -1) {
         perror("can't create signal pipe");
@@ -247,8 +292,12 @@ int main(int argc, char* argv[]) {
     if (child_pid == 0) {
         close(signal_pipe[1]);
 
-        int error;
-        high_level__filesystem_create(argv[2], &error);
+        strcpy(kernel_device_path, argv[2]);
+        kernel_device_fd = open(kernel_device_path, O_RDWR);
+        if (kernel_device_fd < 0) {
+            printf("ERROR: kernel module connection error. Can't start server.\n");
+            return 1;
+        }
 
         struct sockaddr_in address = {.sin_family = AF_INET, .sin_port = htons(atoi(argv[1]))};
         server_loop((struct sockaddr*) &address, sizeof(address), signal_pipe[0]);
@@ -260,7 +309,7 @@ int main(int argc, char* argv[]) {
         close(signal_pipe[1]);
         int status;
         if (waitpid(child_pid, &status, 0) == -1) {
-            perror("synce processes error");
+            perror("sync processes error");
             exit(EXIT_FAILURE);
         }
     } else {

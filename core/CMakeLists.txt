@@ -66,19 +66,19 @@ INCLUDE_DIRECTORIES(minifs-core include)
 SET(MINIFS_CORE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-find_package(KernelHeaders REQUIRED)
-include_directories(${KERNELHEADERS_INCLUDE_DIRS})
-message(status ${KERNELHEADERS_INCLUDE_DIRS})
-set(DRIVER_FILE minifs-kernel.ko)
-set(KBUILD_CMD $(MAKE) -C ${KERNELHEADERS_DIR} modules M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR})
+# list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+# find_package(KernelHeaders REQUIRED)
+# include_directories(${KERNELHEADERS_INCLUDE_DIRS})
+# message(status ${KERNELHEADERS_INCLUDE_DIRS})
+# set(DRIVER_FILE minifs-kernel.ko)
+# set(KBUILD_CMD $(MAKE) -C ${KERNELHEADERS_DIR} modules M=${CMAKE_CURRENT_BINARY_DIR} src=${CMAKE_CURRENT_SOURCE_DIR})
 
-# Generate the Kbuild file through cmake.
-FILE(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild "EXTRA_CFLAGS=-I${CMAKE_CURRENT_SOURCE_DIR}/include\nobj-m := minifs-kernel.o\nminifs-kernel-y := src/minifs-kernel.c")
+# # Generate the Kbuild file through cmake.
+# FILE(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Kbuild "EXTRA_CFLAGS=-I${CMAKE_CURRENT_SOURCE_DIR}/include\nobj-m := minifs-kernel.o\nminifs-kernel-y := src/minifs-kernel.c")
 
-add_custom_command(OUTPUT ${DRIVER_FILE}
-        COMMAND ${KBUILD_CMD}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        DEPENDS src/minifs-kernel.c VERBATIM)
+# add_custom_command(OUTPUT ${DRIVER_FILE}
+#         COMMAND ${KBUILD_CMD}
+#         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+#         DEPENDS src/minifs-kernel.c VERBATIM)
 
-add_custom_target(driver ALL DEPENDS ${DRIVER_FILE})
+# add_custom_target(driver ALL DEPENDS ${DRIVER_FILE})

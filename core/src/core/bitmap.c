@@ -1,5 +1,5 @@
 #include "minifs/core/bitmap.h"
-#include "minifs/disk.h"
+// #include "minifs/disk.h"
 #include "minifs/errors.h"
 #include "minifs/utils.h"
 

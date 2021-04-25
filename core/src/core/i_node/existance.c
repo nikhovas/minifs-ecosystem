@@ -1,5 +1,4 @@
 #include "minifs/core/i_node.h"
-#include "minifs/disk.h"
 #include "minifs/core/bitmap.h"
 #include "minifs/constants.h"
 #include "minifs/errors.h"

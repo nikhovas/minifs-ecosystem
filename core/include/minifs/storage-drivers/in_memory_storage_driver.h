@@ -2,7 +2,6 @@
 
 
 #include <minifs/std-wrapper/stdint.h>
-#include <stdio.h>
 #include <minifs/filesystem_context.h>
 #include <minifs/constants.h>
 

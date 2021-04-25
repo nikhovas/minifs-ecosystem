@@ -1,6 +1,5 @@
 #include "minifs/core/superblock.h"
 #include "minifs/constants.h"
-#include "minifs/disk.h"
 
 
 #ifdef KERNEL_MODULE

@@ -39,6 +39,12 @@ void answer_internal_server_error(int descr) {
 }
 
 
+void answer_internal_server_error_with_data(int descr, int content_length, const void* contents) {
+    dprintf(descr, "HTTP/1.1 500 Internal Server Error\r\nContent-Length: %d\r\n\r\n", content_length);
+    write(descr, contents, content_length);
+}
+
+
 void answer_method_not_allowed(int descr) {
     dprintf(descr, "HTTP/1.1 405 Method Not Allowed\r\n\r\n");
 }

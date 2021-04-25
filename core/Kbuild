@@ -1,3 +1,0 @@
-EXTRA_CFLAGS=-I/home/nikhovas/minifs-ecosystem/demoServerrrr/core/include
-obj-m := minifs-kernel.o
-minifs-kernel-y := src/minifs-kernel.c

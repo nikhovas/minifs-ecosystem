@@ -1,3 +1,4 @@
+#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #define KERNEL_MODULE
@@ -5,6 +6,7 @@
 #include <linux/cdev.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>
+
 
 
 #include <minifs/constants.h>
@@ -15,6 +17,7 @@
 #include <minifs/core/directory.h>
 #include <minifs/core/file.h>
 #include <minifs/transfer-protocol.h>
+#include <minifs/storage-drivers/in_memory_storage_driver.h>
 
 
 #define ROOT_DIR_ID 0
@@ -37,8 +40,11 @@ struct minifs_core_transfer_protocol_options tp_options = {
 };
 
 
+struct minifs_core__filesystem_context ctx;
+struct in_memory_storage_driver imsd;
+
+
 char storing = 0;
-char filesystem[END_OFFSET];
 uint8_t buffer[1024];
 uint16_t buffer_size = 0;
 uint8_t buffer_one[128];
@@ -51,56 +57,6 @@ uint8_t current_operation = 0;
 
 
 struct cdev *p_cdev;
-
-
-ssize_t filename_to_buffer_one(const char *buf, size_t count) {
-    if (count < 1) {
-        return -2;
-    }
-    buffer_one_size = (uint8_t) buf[1];
-    if (count < 2 + buffer_one_size) {
-        return -2;
-    }
-
-    copy_from_user(buffer_one, buf, buffer_one_size);
-    buffer_one[buffer_one_size] = '\0';
-
-    return buffer_one_size + 1;
-}
-
-
-ssize_t filename_to_buffer_two(const char *buf, size_t count) {
-    if (count < 1) {
-        return -2;
-    }
-    buffer_two_size = (uint8_t) buf[1];
-    if (count < 2 + buffer_two_size) {
-        return -2;
-    }
-
-    copy_from_user(buffer_two, buf, buffer_two_size);
-    buffer_two[buffer_two_size] = '\0';
-
-    return buffer_two_size + 1;
-}
-
-
-ssize_t contents_to_buffer(const char *buf, size_t count) {
-    if (count < 2) {
-        return -2;
-    }
-
-    const char* with_offset = buf + 2;
-    const uint16_t* addr = (const uint16_t *) with_offset;
-    buffer_size = (int) *addr;
-    if (count < 2 + buffer_size) {
-        return -2;
-    }
-
-    copy_from_user(buffer, buf, buffer_size);
-
-    return buffer_size + 2;
-}
 
 
 ssize_t scull_read(struct file *flip, char __user *buf, size_t count, loff_t *f_pos) {
@@ -119,9 +75,7 @@ ssize_t scull_read(struct file *flip, char __user *buf, size_t count, loff_t *f_
         *((uint16_t*) (buffer + 1)) = buffer_size;
         copy_to_user(buf, (char *) buffer, 3);
 
-        if (current_operation != MINIFS_CORE_PROTOCOL__FILE_GET_REQUEST_NUM && current_operation != MINIFS_CORE_PROTOCOL__DIR_GET_REQUEST_NUM) {
-            storing = 0;
-        } else if (status != NO_ERROR) {
+        if (buffer_size == 0 || status != NO_ERROR) {
             storing = 0;
         } else {
             storing = 2;
@@ -162,37 +116,47 @@ ssize_t scull_write(struct file *flip, const char __user *buf, size_t count, lof
 
     switch (operation) {
         case MINIFS_CORE_PROTOCOL__FILE_CREATE_REQUEST_NUM:
-            middle_level__file_create(buffer_one, (int *) &status);
+            middle_level__file_create(&ctx, buffer_one, (int *) &status);
+            buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_GET_REQUEST_NUM:
-            middle_level__file_get(buffer_one, (uint8_t *) (buffer + 3), &meta, (int *) &status);
+            middle_level__file_get(&ctx, buffer_one, (uint8_t *) (buffer + 3), &meta, (int *) &status);
             buffer_size = (uint16_t) meta;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_DELETE_REQUEST_NUM:
-            middle_level__file_delete(buffer_one, (int *) &status);
+            middle_level__file_delete(&ctx, buffer_one, (int *) &status);
+            buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_WRITE_REQUEST_NUM:
-            middle_level__file_write(buffer_one, buffer, (int) buffer_size, (int *) &status);
+            middle_level__file_write(&ctx, buffer_one, buffer, (int) buffer_size, (int *) &status);
+            buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__FILE_COPY_REQUEST_NUM:
-            middle_level__file_copy(buffer_one, buffer_two, buffer, (int *) &status);
+            middle_level__file_copy(&ctx, buffer_one, buffer_two, buffer, (int *) &status);
+            buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__DIR_CREATE_REQUEST_NUM:
-            middle_level__dir_create(buffer_one, (int *) &status);
+            middle_level__dir_create(&ctx, buffer_one, (int *) &status);
+            buffer_size = 0;
             break;
         case MINIFS_CORE_PROTOCOL__DIR_GET_REQUEST_NUM:
-            middle_level__dir_get_contents(buffer_one, (directory_item_t *) (buffer + 3), &meta2, (int *) &status);
+            middle_level__dir_get_contents(&ctx, buffer_one, (directory_item_t *) (buffer + 3), &meta2, (int *) &status);
             buffer_size = meta2 * sizeof(directory_item_t);
             break;
         case MINIFS_CORE_PROTOCOL__DIR_DELETE_REQUEST_NUM:
-            middle_level__dir_delete(buffer_one, (int *) &status);
+            middle_level__dir_delete(&ctx, buffer_one, (int *) &status);
+            buffer_size = 0;
             break;
         default:
             status = MINIFS_ERROR__NOT_ENOUGH_REQUEST_SIZE;
+            buffer_size = 0;
             break;
     }
 
+    
+
     printk(KERN_INFO "minifs-kernel: end handle request\n");
+    storing = 1;
     return global_read;
 }
 
@@ -225,7 +189,7 @@ static int scull_init_module(void) {
     dev_t dev;
     rv = alloc_chrdev_region(&dev, scull_minor, 1, "scull");
     if (rv) {
-        printk(KERN_WARNING "scull: can't get major %d\n", scull_major);
+        printk(KERN_WARNING "minifs_kernel: can't get major %d\n", scull_major);
         return rv;
     }
 
@@ -240,9 +204,14 @@ static int scull_init_module(void) {
     rv = cdev_add(p_cdev, dev, 1);
 
     if (rv)
-        printk(KERN_NOTICE "Error %d adding scull", rv);
+        printk(KERN_NOTICE "Error %d adding minifs_kernel", rv);
 
-    printk(KERN_INFO "scull: register device major = %d minor = %d\n", scull_major, scull_minor);
+    printk(KERN_INFO "minifs_kernel: register device major = %d minor = %d\n", scull_major, scull_minor);
+
+    int error;
+    minifs_core__create_in_memory_storage_driver(&imsd);
+    ctx.sdi = (struct storage_driver_interface *) &imsd;
+    imsd.init(&ctx, &error);
 
     return 0;
 }
