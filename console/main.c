@@ -292,6 +292,7 @@ void kernel_execute_cmd(int args_count, char** args) {
 void server_execute_cmd(int args_count, char** args) {
     char buffer[1024];
     uint16_t buffer_size = 0;
+    
     if (args_count >= 3) {
         if (strcmp(args[0], "file") == 0) {
             if (strcmp(args[1], "create") == 0) {
