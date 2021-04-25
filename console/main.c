@@ -51,6 +51,7 @@ void cmd_file_get(char * name, int *error) {
     if (*error == NO_ERROR) {
         printf("%s\n", data);
     }
+    free(data);
 }
 
 
@@ -84,6 +85,7 @@ void cmd_dir_get(char * name, int *error) {
     if (*error == NO_ERROR) {
         printf("%s\n", data);
     }
+    free(data);
 }
 
 

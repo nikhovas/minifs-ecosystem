@@ -14,14 +14,18 @@ void high_level__file_create(struct minifs_core__filesystem_context * ctx, const
 
     uint8_t file_i_node_id = file__create(ctx, error);
     if (*error != NO_ERROR) {
+        free(name2);
         return;
     }
 
     dir_data_id__write_file_in_subdirs(ctx, ROOT_DIR_ID, name2, file_i_node_id, error);
     if (*error != 0) {
         file_id__remove(ctx, file_i_node_id, error);
+        free(name2);
         return;
     }
+
+    free(name2);
 }
 
 
@@ -31,21 +35,26 @@ void* high_level__file_get(struct minifs_core__filesystem_context * ctx, const c
 
     found_file_info_t found_file = dir_data_id__get_file_in_subdirs(ctx, ROOT_DIR_ID, name2, 0, error_code);
     if (*error_code != 0) {
+        free(name2);
         return NULL;
     }
 
     int file_length = file_id__get_length(ctx, found_file.file_i_node_id, error_code);
     if (*error_code != 0) {
+        free(name2);
         return NULL;
     }
 
     uint8_t *contents = malloc(file_length);
     file_id__get_contents(ctx, found_file.file_i_node_id, (uint8_t *) contents, error_code);
     if (*error_code != 0) {
+        free(name2);
+        free(contents);
         return NULL;
     }
 
     *data_length = file_length;
+    free(name2);
     return contents;
 }
 
@@ -60,13 +69,17 @@ void high_level__file_write(struct minifs_core__filesystem_context * ctx, char* 
 
     found_file_info_t found_file = dir_data_id__get_file_in_subdirs(ctx, ROOT_DIR_ID, name2, 0, error);
     if (*error != 0) {
+        free(name2);
         return;
     }
 
     file_id__overwrite(ctx, found_file.file_i_node_id, (uint8_t *) contents, content_length, error);
     if (*error != 0) {
+        free(name2);
         return;
     }
+
+    free(name2);
 }
 
 
@@ -76,15 +89,19 @@ void high_level__file_delete(struct minifs_core__filesystem_context * ctx, char 
 
     found_file_info_t found_file = dir_data_id__get_file_in_subdirs(ctx, ROOT_DIR_ID, name2, 0, error);
     if (*error != 0) {
+        free(name2);
         return;
     }
 
     dir_data_id__unregister_file(ctx, found_file.dir_i_node_id, name2, found_file.file_i_node_id, error);
     if (*error != 0) {
+        free(name2);
         return;
     }
 
     file_id__remove(ctx, found_file.file_i_node_id, error);
+
+    free(name2);
 }
 
 
@@ -95,26 +112,35 @@ void high_level__file_copy(struct minifs_core__filesystem_context * ctx, char * 
     found_file_info_t found_file = dir_data_id__get_file_in_subdirs(ctx, ROOT_DIR_ID, name2, 0, error);
     if (*error == NO_SUCH_FILE || *error == NOT_A_DIRECTORY || *error == NOT_A_VALID_PATH) {
         *error = NO_SUCH_SOURCE;
+        free(name2);
         return;
     } else if (*error != 0) {
+        free(name2);
         return;
     }
 
     int file_length = file_id__get_length(ctx, found_file.file_i_node_id, error);
     if (*error != 0) {
+        free(name2);
         return;
     }
     char *contents = malloc(file_length);
     file_id__get_contents(ctx, found_file.file_i_node_id, (uint8_t *) contents, error);
     if (*error != 0) {
+        free(name2);
+        free(contents);
         return;
     }
 
     high_level__file_create(ctx, destination, error);
     if (*error == NO_SUCH_FILE || *error == NOT_A_DIRECTORY || *error == NOT_A_VALID_PATH) {
         *error = NO_SUCH_DESTINATION;
+        free(name2);
+        free(contents);
         return;
     } else if (*error != 0) {
+        free(name2);
+        free(contents);
         return;
     }
 
@@ -122,4 +148,7 @@ void high_level__file_copy(struct minifs_core__filesystem_context * ctx, char * 
     if (*error != 0) {
         high_level__file_delete(ctx, destination, error);
     }
+
+    free(name2);
+    free(contents);
 }
